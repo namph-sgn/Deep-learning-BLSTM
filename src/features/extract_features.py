@@ -1,3 +1,9 @@
+import numpy as np
+import pandas as pd
+import holidays
+from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
+
 def data_preprocessing(df, hour = 1, timesteps = 12, debug = False):
     """
     Input: 
@@ -33,8 +39,6 @@ def data_preprocessing(df, hour = 1, timesteps = 12, debug = False):
         pos = 0
         length = seq.shape[0]
         continous_length_index = seq.columns.get_loc('Continous length')
-        if debug == True:
-            set_trace()
         while pos < (length - size):
             try:
                 if seq.iloc[pos + size + target_hour].name - seq.iloc[pos].name == timerange:
@@ -53,7 +57,6 @@ def data_preprocessing(df, hour = 1, timesteps = 12, debug = False):
                         tmp_pos += int(seq.iloc[tmp_pos, continous_length_index])
                     pos = tmp_pos
             except IndexError:
-                set_trace()
                 print("Current position is: {}".format(pos))
                 print("Current tmp position is: {}".format(tmp_pos))
                 pos = length - size
@@ -188,24 +191,33 @@ def add_features(df):
 
 def generate_train_test_set_by_time(df, ratio = 0.1):
     # Generate test set by taking the lastest 10% data from each site
-#     train_df = df.drop(index=(48), level=0).copy()
-    train_df = df.copy()
-    latest_time = train_df.index.get_level_values(1).max()
-    oldest_time = train_df.index.get_level_values(1).min()
-    cutoff_hour = (latest_time - oldest_time).total_seconds()
-    cutoff_hour = cutoff_hour // 3600
-    cutoff_hour = cutoff_hour * ratio
-    test_df = train_df[train_df.index.get_level_values(1) >= (latest_time - pd.Timedelta(hours=cutoff_hour))]
-    train_df = train_df[train_df.index.get_level_values(1) < (latest_time - pd.Timedelta(hours=cutoff_hour))]
-    # Generate train_test set for site 48 and 49
-#     train_df_48 = df[df.index.get_level_values(0) == 48]
-#     latest_time = train_df_48.index.get_level_values(1).max()
-#     oldest_time = train_df_48.index.get_level_values(1).min()
-#     cutoff_hour = (latest_time - oldest_time).total_seconds()
-#     cutoff_hour = cutoff_hour // 3600
-#     cutoff_hour = cutoff_hour * ratio
-#     test_df = test_df.append(train_df_48[train_df_48.index.get_level_values(1) >= (latest_time - pd.Timedelta(hours=cutoff_hour))])
-#     train_df = train_df.append(train_df_48[train_df_48.index.get_level_values(1) < (latest_time - pd.Timedelta(hours=cutoff_hour))])
+    if 49 in df.index.get_level_values(0):
+        train_df = df.copy()
+        latest_time = train_df.index.get_level_values(1).max()
+        oldest_time = train_df.index.get_level_values(1).min()
+        cutoff_hour = (latest_time - oldest_time).total_seconds()
+        cutoff_hour = cutoff_hour // 3600
+        cutoff_hour = cutoff_hour * ratio
+        test_df = train_df[train_df.index.get_level_values(1) >= (latest_time - pd.Timedelta(hours=cutoff_hour))]
+        train_df = train_df[train_df.index.get_level_values(1) < (latest_time - pd.Timedelta(hours=cutoff_hour))]
+    else:
+        train_df = df.drop(index=(48), level=0).copy()
+        latest_time = train_df.index.get_level_values(1).max()
+        oldest_time = train_df.index.get_level_values(1).min()
+        cutoff_hour = (latest_time - oldest_time).total_seconds()
+        cutoff_hour = cutoff_hour // 3600
+        cutoff_hour = cutoff_hour * ratio
+        test_df = train_df[train_df.index.get_level_values(1) >= (latest_time - pd.Timedelta(hours=cutoff_hour))]
+        train_df = train_df[train_df.index.get_level_values(1) < (latest_time - pd.Timedelta(hours=cutoff_hour))]
+        # Generate train_test set for site 48 and 49
+        train_df_48 = df[df.index.get_level_values(0) == 48].copy()
+        latest_time = train_df_48.index.get_level_values(1).max()
+        oldest_time = train_df_48.index.get_level_values(1).min()
+        cutoff_hour = (latest_time - oldest_time).total_seconds()
+        cutoff_hour = cutoff_hour // 3600
+        cutoff_hour = cutoff_hour * ratio
+        test_df = test_df.append(train_df_48[train_df_48.index.get_level_values(1) >= (latest_time - pd.Timedelta(hours=cutoff_hour))])
+        train_df = train_df.append(train_df_48[train_df_48.index.get_level_values(1) < (latest_time - pd.Timedelta(hours=cutoff_hour))])
     return train_df, test_df
 def generate_train_test_set_by_skfold(df):
     from sklearn.model_selection import StratifiedKFold
@@ -225,65 +237,3 @@ def generate_train_test_set_by_skfold(df):
             break
 
     return train_df, test_df
-def reshape_array_and_save_to_path(arr_data, arr_label, path, timesteps, target_hour, data_type="Train"):
-    # reshaping the array from 3D 
-    # matrice to 2D matrice. 
-    arr_data_reshaped = arr_data.reshape(arr_data.shape[0], -1)
-    arr_label_reshaped = arr_label.reshape(arr_label.shape[0], -1)
-    
-    # saving reshaped array to file.
-    saved_data = np.savez_compressed(path + "/{}_{}_{}_data.npz".format(timesteps, target_hour, data_type), arr_data_reshaped)
-    saved_label = np.savez_compressed(path + "/{}_{}_{}_label.npz".format(timesteps, target_hour, data_type), arr_label_reshaped)
-    
-    # retrieving data from file.
-    loaded_arr_data_file = np.load(path + "/{}_{}_{}_data.npz".format(timesteps, target_hour, data_type), allow_pickle=True)
-    loaded_arr_label_file = np.load(path + "/{}_{}_{}_label.npz".format(timesteps, target_hour, data_type), allow_pickle=True)
-    loaded_arr_data = loaded_arr_data_file['arr_0']
-    loaded_arr_data_file.close()
-    loaded_arr_label = loaded_arr_label_file['arr_0'].ravel()
-    loaded_arr_label_file.close()
-    # This loadedArr is a 2D array, therefore
-    # we need to convert it to the original 
-    # array shape.reshaping to get original 
-    # matrice with original shape. 
-    loaded_arr_data = loaded_arr_data.reshape( 
-        loaded_arr_data.shape[0], loaded_arr_data.shape[1] // arr_data.shape[2], arr_data.shape[2])
-    
-    features_save = np.save(path+"/features.npy", arr_data.shape[2])
-    # check the shapes:
-    print("Data array:")
-    print("shape of arr: ", arr_data.shape) 
-    print("shape of loaded_array: ", loaded_arr_data.shape)
-    
-    # check if both arrays are same or not: 
-    if (arr_data == loaded_arr_data).all(): 
-        print("Yes, both the arrays are same") 
-    else: 
-        print("No, both the arrays are not same")
-    # check the shapes:
-    print("Label array:")
-    print("shape of arr: ", arr_label.shape) 
-    print("shape of loaded_array: ", loaded_arr_label.shape)
-
-    # check if both arrays are same or not: 
-    if (arr_label == loaded_arr_label).all(): 
-        print("Yes, both the arrays are same") 
-    else: 
-        print("No, both the arrays are not same")
-    return None
-def load_reshaped_array(timesteps, target_hour, folder_path, data_type="train"):
-    features = np.load(folder_path + "/features.npy", allow_pickle=True).ravel()[0]
-    loaded_file = np.load(folder_path + "/{}_{}_{}_data.npz".format(timesteps, target_hour, data_type), allow_pickle=True)
-    loaded_data = loaded_file['arr_0']
-    loaded_data = loaded_data.reshape( 
-            loaded_data.shape[0], loaded_data.shape[1] // features, features).astype(float)
-    loaded_file.close()
-    loaded_file_label = np.load(folder_path + "/{}_{}_{}_label.npz".format(timesteps, target_hour, data_type), allow_pickle=True)
-    loaded_label = loaded_file_label['arr_0'].ravel().astype(float)
-    loaded_file_label.close()
-    return loaded_data, loaded_label
-def create_tensorflow_dataset(arr_data, arr_label, batch_size):
-    tf_dataset = tf.data.Dataset.from_tensor_slices((arr_data, arr_label))
-    tf_dataset = tf_dataset.repeat().batch(batch_size, drop_remainder=True)
-    steps_per_epochs = len(arr_data) // batch_size
-    return tf_dataset, steps_per_epochs
