@@ -1,0 +1,1 @@
+# here will contain all functions to read every file from data folder
