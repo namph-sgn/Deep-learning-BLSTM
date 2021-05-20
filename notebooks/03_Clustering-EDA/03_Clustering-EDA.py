@@ -34,6 +34,7 @@ import tensorflow as tf
 import sklearn
 from sklearn.cluster import KMeans
 import glob
+from sklearn.preprocessing import MinMaxScaler
 
 from tslearn.barycenters import dtw_barycenter_averaging
 from tslearn.clustering import TimeSeriesKMeans
@@ -130,7 +131,7 @@ for element in site_data_series:
 # Get all data to the same range
 for i in range(len(site_data_list)):
     scaler = MinMaxScaler()
-    site_data_list[i] = MinMaxScaler().fit_transform(site_data_list[i])
+    site_data_list[i] = MinMaxScaler().fit_transform(site_data_list[i].reshape(-1, 1))
     site_data_list[i]= site_data_list[i].reshape(len(site_data_list[i]))
 
 
@@ -168,16 +169,25 @@ plot_all_data_as_series(site_data_series)
 
 # Just by looking, we have seen that there is definitely some pattern between each site. Next we use KMean to find the clusters and visualize those for more information.
 
-# Use time series KMean
-model = TimeSeriesKMeans(n_clusters=5, metric="dtw", max_iter=10)
-model.fit(site_data_list)
+# ### Cluster distribution
+
+cluster_count = [len(label_soft[label_soft == i]) for i in range(4)]
+cluster_name = ["Cluster {}".format(i) for i in range(4)]
+fig_cluster_soft = plt.figure(figsize=(16,9))
+axes = fig_cluster_soft.add_subplot()
+fig.title("Cluster distribution for KMeans")
+axes.bar(cluster_count, cluster_name)
+
+plt.show()
 
 
-# # Results
+
+
+
+# Try it with metrics softdtw once more time
+
+# # Train model and plot Results
 # Show graphs and stats here
-
-labels = model.predict(site_data_list)
-
 
 def plot_result(mySeries, labels):
     fig, axs = plt.subplots(3,3,figsize=(25,25))
@@ -200,7 +210,18 @@ def plot_result(mySeries, labels):
             row_i+=1
             column_j=0
     plt.show()
-plot_result(site_data_list, labels)
+
+
+model_dtw = TimeSeriesKMeans(n_clusters=4, metric="dtw", max_iter=30)
+model_dtw.fit(site_data_list)
+label_dtw = model_dtw.predict(site_data_list)
+plot_result(site_data_list, label_dtw)
+
+
+model_soft = TimeSeriesKMeans(n_clusters=4, metric="softdtw", max_iter=30)
+model_soft.fit(site_data_list)
+label_soft = model_soft.predict(site_data_list)
+plot_result(site_data_list, label_soft)
 
 
 # We can see that the data of cluster 2 and 3 are somewhat similar. We can use this information to choose a better parameter: metrics or number of cluster.
