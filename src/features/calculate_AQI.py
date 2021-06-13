@@ -113,11 +113,14 @@ def calculate_AQI_h(data = None):
     site_ids = list(data.index.get_level_values(0).unique())
 #     set_trace()
     for site_id in site_ids:
-        tmp = sorted_data.loc[site_id, ['PM25']].apply(
-            (lambda x: nowcast(sorted_data.loc[site_id, ['PM25']], x))
-            , axis=1,
-            result_type='broadcast'
-        )
+        try:
+            tmp = sorted_data.loc[site_id, ['PM25']].apply(
+                (lambda x: nowcast(sorted_data.loc[site_id, ['PM25']], x))
+                , axis=1,
+                result_type='broadcast'
+            )
+        except:
+            print("Error in site {}".format(site_id))
 #         set_trace()
         sorted_data.loc[site_id, ['NowCast']] = tmp.values
         print("Done calculating NowCast for site {}".format(site_id))
