@@ -1,6 +1,20 @@
 import pandas as pd
 import numpy as np
 
+# Gia tri so sanh de tinh muc do AQI
+def categorize_AQI(AQI_data):
+    """
+    Input: Series of AQI_values
+    Output: Series of AQI category
+    7 categories [Good, Moderate, Unhealthy for Sensitive, Unhealthy, Very Unhealthy, Hazardous, Out of AQI]
+    range of categories [0-50, 51-100, 101-150, 151-200, 201-300, 301-500, >500]
+    """
+    bins = [-1, 50, 100, 150, 200, 300, 500, np.inf]
+    labels = ["Good", "Moderate", "Unhealthy for Sensitive",
+              "Unhealthy", "Very Unhealthy", "Hazardous", "Beyond AQI"]
+    return pd.cut(AQI_data, bins=bins, labels=labels)
+
+
 def calculate_AQI_h(data=None):
     def create_BP_df():
         import pandas as pd
@@ -98,19 +112,6 @@ def calculate_AQI_h(data=None):
                     tmp_12h_data_storage)+1)]) / sum([(w**(i-1)) for i in range(1, len(tmp_12h_data_storage) + 1)])
             calculating_hour_value = nowcast.values[0]
         return calculating_hour_value
-
-    # Gia tri so sanh de tinh muc do AQI
-    def categorize_AQI(AQI_data):
-        """
-        Input: Series of AQI_values
-        Output: Series of AQI category
-        7 categories [Good, Moderate, Unhealthy for Sensitive, Unhealthy, Very Unhealthy, Hazardous, Out of AQI]
-        range of categories [0-50, 51-100, 101-150, 151-200, 201-300, 301-500, >500]
-        """
-        bins = [-1, 50, 100, 150, 200, 300, 500, np.inf]
-        labels = ["Good", "Moderate", "Unhealthy for Sensitive",
-                  "Unhealthy", "Very Unhealthy", "Hazardous", "Beyond AQI"]
-        return pd.cut(AQI_data, bins=bins, labels=labels)
 
 # ==========================================================================================================
     idx = pd.IndexSlice
