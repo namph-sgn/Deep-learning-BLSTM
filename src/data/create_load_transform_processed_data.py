@@ -62,7 +62,15 @@ def load_reshaped_array(timesteps, target_hour, folder_path, data_type="train"):
     loaded_file_label.close()
     return loaded_data, loaded_label
 def create_tensorflow_dataset(arr_data, arr_label, batch_size):
+    if len(arr_data) % batch_size != 0:
+        if len(arr_data) // batch_size != 0:
+            remain_count = len(arr_data)%batch_size
+            arr_data = arr_data[remain_count:]
+            arr_label = arr_label[remain_count:]
+        else:
+            batch_size = len(arr_data)
     tf_dataset = tf.data.Dataset.from_tensor_slices((arr_data, arr_label))
     tf_dataset = tf_dataset.repeat().batch(batch_size, drop_remainder=True)
     steps_per_epochs = len(arr_data) // batch_size
+    print(arr_data)
     return tf_dataset, steps_per_epochs

@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 import holidays
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 import tensorflow as tf
+import joblib
+import os
 
 
 def data_preprocessing(df, hour=1, timesteps=12, debug=False):
@@ -164,8 +166,13 @@ def extract_time_features(df):
     df_time_features['cos_daymonth'] = np.cos(
         2*np.pi*df_time_features['Day of Month']/df_time_features['Days in Month'])
     # One hot encode year data
-    one_hot_df = pd.get_dummies(
-        df_time_features['Year'], drop_first=True, prefix='year')
+    year_cat_enc = OneHotEncoder(
+        drop='first', sparse=False)
+    year_cat_train = np.array(
+        [2016, 2017, 2018, 2019, 2020, 2021]).reshape(-1, 1)
+    year_cat_enc.fit(year_cat_train)
+    one_hot_df = pd.DataFrame(year_cat_enc.transform(
+        df_time_features['Year'].values.reshape(-1, 1)), columns=year_cat_enc.get_feature_names(['year']))
     df_time_features = df_time_features.join(one_hot_df)
     # Input weekday/weekend/holiday data
     vn_holidays = np.array(
@@ -192,19 +199,39 @@ def extract_time_features(df):
     return df_time_features.values, df_time_features.columns
 
 
-def add_features(df):
-
-    # Change all data to numpy, then concatenate those numpy.
-    # Then construct the dataframe to old frame. This can work
-    data_df = df[['AQI_h', 'AQI_h_I', 'Continous length']].copy()
-
+def create_and_save_scale_data(df, output_path=None, PROJECT_ROOT=os.pardir):
+    if output_path is None:
+        output_path = os.path.join(PROJECT_ROOT, "data", "model_input")
     # Job: Normalize train data
+    data_df = df.copy()
 
     scaler = MinMaxScaler(feature_range=(-1, 1))
 
     for col in ['AQI_h']:
         data_df[[col]] = scaler.fit_transform(data_df[[col]])
 
+    joblib.dump(scaler, output_path+'/scaler.pkl')
+    return data_df
+
+
+def load_scaler_and_scale_data(df, input_path=None, PROJECT_ROOT=os.pardir):
+    if input_path is None:
+        input_path = os.path.join(PROJECT_ROOT, "data", "model_input")
+    scaler = joblib.load(input_path+'/scaler.pkl')
+    data_df = df.copy()
+    for col in ['AQI_h']:
+        data_df[[col]] = scaler.transform(data_df[[col]])
+    return data_df
+
+
+def add_features(df, region='hcm', production=False):
+
+    # Change all data to numpy, then concatenate those numpy.
+    # Then construct the dataframe to old frame. This can work
+    data_df = df[['AQI_h', 'AQI_h_I', 'Continous length']].copy()
+
+    if production==True:
+        data_df = load_scaler_and_scale_data(data_df)
     columns = ['site_id', 'time',
                'AQI_h', 'AQI_h_I', 'Continous length']
     df_numpy = data_df.reset_index().to_numpy()
@@ -214,8 +241,12 @@ def add_features(df):
         0), prefix='site', drop_first=True).astype(int)
     columns.extend(one_hot_site.columns)
     # Add onehot category
-    one_hot_cat = pd.get_dummies(
-        data_df['AQI_h_I'], drop_first=True, prefix='cat').astype(int)
+    aqi_cat_enc = OneHotEncoder(
+        drop='first', sparse=False)
+    aqi_cat_train = np.array([1., 2., 3., 4., 5., 6.]).reshape(-1, 1)
+    aqi_cat_enc.fit(aqi_cat_train)
+    one_hot_cat = pd.DataFrame(aqi_cat_enc.transform(
+        data_df['AQI_h_I'].values.reshape(-1, 1)), columns=aqi_cat_enc.get_feature_names(['cat']))
     columns.extend(one_hot_cat.columns)
     # Add time features
     time_features, time_columns = extract_time_features(data_df)

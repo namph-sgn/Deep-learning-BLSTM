@@ -23,11 +23,12 @@ def create_input_for_model(df, timesteps=[1], target_hour=[1], test_output=False
     if output_path == None:
         output_path == os.path.join(PROJ_ROOT,
                                     "data",
-                                    "processed")
+                                    "model_input")
     for timesteps in timesteps:
         for target_hour in target_hour:
             # Create train, dev, test data
             train_df = extract_features.add_features(df).copy()
+            train_df = extract_features.create_and_save_scale_data(train_df, output_path=output_path).copy()
             if test_output is not False:
                 train_df, test_df = extract_features.generate_train_test_set_by_time(
                     train_df)
@@ -49,6 +50,7 @@ def create_input_for_model(df, timesteps=[1], target_hour=[1], test_output=False
             # Save data to file
             create_load_transform_processed_data.reshape_array_and_save_to_path(
                 train, y_train, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="train")
-
+    train = train.astype('float32')
+    y_train = y_train.astype('float32')
     print("Input have been created")
-    pass
+    return train, y_train
