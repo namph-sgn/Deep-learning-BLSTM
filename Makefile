@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: clean run_streamlit data lint requirements sync_data_to_s3 sync_data_from_s3
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -24,6 +24,14 @@ endif
 requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+
+## Run Streamlit app
+run_streamlit:
+	streamlit run streamlit_app/myapp.py
+
+## Run Flask app
+run_flask:
+	gunicorn --config flask_app/gunicorn.conf.py wsgi:app
 
 ## Make Dataset
 data: requirements

@@ -1,0 +1,13 @@
+google_api_python_client==1.12.8
+google-cloud-storage
+Flask
+requests
+pytz
+pandas
+numpy
+gunicorn
+feedparser
+holidays
+tensorflow
+sklearn
+joblib

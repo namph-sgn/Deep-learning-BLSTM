@@ -2,6 +2,7 @@
 -e .
 
 # external requirements
+google-cloud-storage
 click
 Sphinx
 coverage
