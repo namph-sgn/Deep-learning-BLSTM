@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 
 # Gia tri so sanh de tinh muc do AQI
+
+
 def categorize_AQI(AQI_data):
     """
     Input: Series of AQI_values
@@ -141,6 +143,9 @@ def calculate_AQI_h(data=None):
     calculated_AQI['AQI_h_label'] = categorize_AQI(calculated_AQI['AQI_h'])
     calculated_AQI['AQI_h_I'] = calculated_AQI['AQI_h_label'].cat.codes + 1
     # Rearranging columns
-    calculated_AQI = calculated_AQI[[
-        'CO', 'NO2', 'PM25', 'AQI_h', 'AQI_h_Polutant', 'AQI_h_I', 'AQI_h_label']]
+    # Ignore missing columns
+    column_order = [
+        'CO', 'NO2', 'PM25', 'AQI_h', 'AQI_h_Polutant', 'AQI_h_I', 'AQI_h_label']
+    column_intersection = [x for x in column_order if x in frozenset(calculated_AQI.columns)]
+    calculated_AQI = calculated_AQI[column_intersection]
     return calculated_AQI
