@@ -93,9 +93,9 @@ def calculate_AQI_h(data=None):
         # Kiem tra xem trong 3 gio gan nhat thi it nhat 2 gio phai co so lieu
         # Neu khong qua duoc check o tren thi so lieu tinh duoc dat la 0
         if tmp_12h_data_storage.iloc[0:3].isna().sum().values[0] > 1:
-            calculating_hour_value.loc[:] = 0
+            nowcast = 0
         elif len(tmp_12h_data_storage) < 2:
-            calculating_hour_value.loc[:] = 0
+            nowcast = 0
         else:
             min_value = tmp_12h_data_storage.min().values[0]
             max_value = tmp_12h_data_storage.max().values[0]
@@ -112,8 +112,9 @@ def calculate_AQI_h(data=None):
             else:
                 nowcast = sum([(w**(i-1)) * tmp_12h_data_storage.iloc[i-1] for i in range(1, len(
                     tmp_12h_data_storage)+1)]) / sum([(w**(i-1)) for i in range(1, len(tmp_12h_data_storage) + 1)])
-            calculating_hour_value = nowcast.values[0]
-        return calculating_hour_value
+            # calculating_hour_value = nowcast.values[0]
+            nowcast = nowcast.values[0]
+        return nowcast
 
 # ==========================================================================================================
     idx = pd.IndexSlice
@@ -132,7 +133,6 @@ def calculate_AQI_h(data=None):
             print(e)
 #         set_trace()
         sorted_data.loc[site_id, ['NowCast']] = tmp.values
-
     # Air index number of all polutant data
     I_number = sorted_data.drop('NowCast', axis=1).apply(
         (lambda x: calculate_BP_I(x, _global_BP)), axis=0, result_type='broadcast')
