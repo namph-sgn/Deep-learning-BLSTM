@@ -3,7 +3,7 @@ from src.features import extract_features
 from src.data import create_load_transform_processed_data
 
 
-def create_input_for_model(df, timesteps=[1], target_hour=[1], test_output=False, dev_output=False, output_path=None, PROJ_ROOT=os.pardir):
+def create(df, timesteps=[1], target_hour=[1], test_output=False, dev_output=False, output_path=None, PROJ_ROOT=os.pardir):
     """From interim dataframe:
         + add features
         + split into chunks according to timesteps
@@ -27,8 +27,8 @@ def create_input_for_model(df, timesteps=[1], target_hour=[1], test_output=False
     for timesteps in timesteps:
         for target_hour in target_hour:
             # Create train, dev, test data
-            train_df = extract_features.add_features(df).copy()
-            train_df = extract_features.create_and_save_scale_data(train_df, output_path=output_path).copy()
+            train_df = extract_features.create_and_save_scale_data(df, output_path=output_path).copy()
+            train_df = extract_features.add_features(train_df).copy()
             if test_output is not False:
                 train_df, test_df = extract_features.generate_train_test_set_by_time(
                     train_df)
