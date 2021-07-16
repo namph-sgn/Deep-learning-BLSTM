@@ -24,7 +24,7 @@ def read_data_by_type(PROJ_ROOT, data_type="raw", output_type="list"):
     site_data = []
     for file in site_data_files:
         tmp_series = pd.read_csv(file, index_col=['site_id','time'], parse_dates=True)
-        if tmp_series.index.get_level_values(0)[0] not in [48,49,16,15]:
+        if tmp_series.index.get_level_values(0)[0] not in [16,15]:
     #         Replace 0 with median
             tmp_series['PM25'] = tmp_series['PM25'].replace(0, np.nanmedian(tmp_series['PM25'].values))
     #         Replace null with median

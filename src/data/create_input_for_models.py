@@ -48,8 +48,9 @@ def create(df, timesteps=[1], target_hour=[1], test_output=False, dev_output=Fal
                 train_df, target_hour, timesteps=timesteps)
 
             # Save data to file
-            create_load_transform_processed_data.reshape_array_and_save_to_path(
-                train, y_train, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="train")
+            if output_path is not None:
+                create_load_transform_processed_data.reshape_array_and_save_to_path(
+                    train, y_train, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="train")
     train = train.astype('float32')
     y_train = y_train.astype('float32')
     print("Input have been created")

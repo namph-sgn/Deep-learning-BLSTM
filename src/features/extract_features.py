@@ -178,9 +178,10 @@ def extract_time_features(df):
     vn_holidays = np.array(
         list(holidays.VN(years=[2015, 2016, 2017, 2018, 2019, 2020, 2021]).keys()))
     holiday_mask = np.isin(time_index.date, vn_holidays)
-    masks = (holiday_mask) | (df_time_features['Day of Week'].values == 5) | (
+    weekend_masks = (df_time_features['Day of Week'].values == 5) | (
         df_time_features['Day of Week'].values == 6)
-    df_time_features['day_off'] = np.where(masks == True, 1, 0)
+    df_time_features['weekend'] = np.where(weekend_masks == True, 1, 0)
+    df_time_features['holidays'] = np.where(holiday_mask == True, 1, 0)
     df_time_features = df_time_features.drop(
         columns=['Day of Month', 'Month', 'Day of Week', 'Days in Month', 'Year', 'Hour'])
 #     Input lagged data
@@ -222,6 +223,12 @@ def load_scaler_and_scale_data(df, input_path=None, PROJECT_ROOT=os.pardir):
     for col in ['AQI_h']:
         data_df[[col]] = scaler.transform(data_df[[col]])
     return data_df
+
+def load_scaler(input_path=None, PROJECT_ROOT=os.pardir):
+    if input_path is None:
+        input_path = os.path.join(PROJECT_ROOT, "data", "model_input")
+    scaler = joblib.load(input_path+'/scaler.pkl')
+    return scaler
 
 
 def add_features(df, region='hcm', production=False):
