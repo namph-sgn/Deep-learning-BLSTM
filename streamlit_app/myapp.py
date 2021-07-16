@@ -8,11 +8,24 @@ import os
 # Make function to get data from api web
 import requests
 
-_predict_data_url = "https://flask-app-test-317210.de.r.appspot.com/predict_data"
+# change for your GCP key
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "flask-app-test-317210-bdec872c665d.json"
+PROJECT = "flask-app-test-317210"  # change for your GCP project
+# change for your GCP region (where your model is hosted)
+REGION = "us-central1"
+
+
+_predict_data_url = "https://flask-app-test-317210.de.r.appspot.com/get_predict_result"
 
 r = requests.get(url=_predict_data_url)
-site_data = r.json()
-predict_data = pd.DataFrame(site_data)
+web_data = r.json()
+past_data = pd.DataFrame({'time': web_data['past_prediction_time'],
+                         'AQI_h_predict': web_data['past_prediction'], 'AQI_h': web_data['past_real_data']})
+past_data = past_data.astype(
+    {'time': 'datetime64[ns]', 'AQI_h': 'float', 'AQI_h_predict': 'float'})
+current_data = pd.DataFrame(
+    {'time': web_data['current_prediction_time'], 'AQI_h': web_data['current_prediction']})
+current_data = current_data.astype({'AQI_h': 'float'})
 
 st.write("""
 # Air quality prediction app
@@ -25,90 +38,31 @@ Data and information reported to AirNow are for the express purpose of reporting
 As such, they should not be used to formulate or support regulation, trends, guidance, or any other government or public decision making.
 """)
 
-st.sidebar.header('User Input Features')
+# st.sidebar.header('User Input Features')
 
-st.sidebar.markdown("""
-[Example CSV input file](https://raw.githubusercontent.com/dataprofessor/data/master/penguins_example.csv)
-""")
+# st.sidebar.markdown("""
+# [Example CSV input file](https://raw.githubusercontent.com/dataprofessor/data/master/penguins_example.csv)
+# """)
 
-# First we must load the models
-# Then we take latest data for models
-# Then we must predict with the models for latest data
-# Then we plot them to 1 line_chart with 2 lines.
-# Then we plot the predicted AQI for the next 5 hours on a bar chart
-PROJ_ROOT = os.path.abspath('./')
+st.write(current_data)
 
-# Data path example
-model_input_data_path = os.path.join(PROJ_ROOT,
-                             "data",
-                             "model_input",
-                             "hanoi")
+fig_bar = plt.figure(figsize=(14, 7))
+ax_bar = fig_bar.add_subplot()
 
-models, model_path = load_model.load_combined_model(timesteps=5, hour=1, PROJ_ROOT=PROJ_ROOT)
 
-data, steps = load_reshaped_array(timesteps=5, target_hour=1, folder_path=model_input_data_path, data_type='test')
+ax_bar.bar(current_data['time'].values,
+           current_data['AQI_h'].values, width=0.4)
 
-if len(data) % 700 != 0:
-    remain_count = len(data)%700
-    test = data[remain_count:]
-    y_test = data[remain_count:]
-test_data_tf, test_steps_per_epochs = create_tensorflow_dataset(test, y_test, 700)
+ax_bar.set_title("Next 5 hours prediction", fontsize=18)
 
-predict_data = models.predict(test_data_tf, steps=test_steps_per_epochs)
-st.write(predict_data)
+st.write(fig_bar)
 
-st.line_chart(predict_data, width=100, use_container_width=True)
+fig_line = plt.figure(figsize=(14, 7))
+ax_line = fig_line.add_subplot()
 
-# uploaded_file = st.sidebar.file_uploader(
-#     "Upload your input CSV file", type=['csv'])
-# if uploaded_file is not None:
-#     input_df = pd.read_csv(uploaded_file)
-# else:
-#     def user_input_features():
-#         island = st.sidebar.selectbox(
-#             'Island', ('Biscoe', 'Dream', 'Torgesen'))
-#         sex = st.sidebar.selectbox('Sex', ('male', 'female'))
-#         bill_length_mm = st.sidebar.slider(
-#             'Bill length (mm)', 32.1, 59.6, 43.9)
-#         bill_depth_mm = st.sidebar.slider('Bill depth (mm)', 13.1, 21.5, 17.2)
-#         flipper_length_mm = st.sidebar.slider(
-#             'Flipper length (mm)', 172.0, 231.0, 201.0)
-#         body_mass_g = st.sidebar.slider(
-#             'Body mass (g)', 2700.0, 6300.0, 4207.0)
-#         data = {
-#             'island': island,
-#             'bill_depth_mm': bill_depth_mm,
-#             'bill_length_mm': bill_length_mm,
-#             'flipper_length_mm': flipper_length_mm,
-#             'body_mass_g': body_mass_g,
-#             'sex': sex
-#         }
-#         features = pd.DataFrame(data, index=[0])
-#         return features
-#     input_df = user_input_features()
+ax_line.plot(past_data['time'].values, past_data['AQI_h'].values, label='Actual')
+ax_line.plot(past_data['time'].values, past_data['AQI_h_predict'].values, label='Prediction')
 
-# penguins_raw = pd.read_csv('penguins_cleaned.csv')
-# X = penguins_raw.drop(columns=['species'])
-# df = pd.concat([input_df, X], axis=0)
+ax_line.set_title("Past 30 hours prediction vs actual", fontsize=18)
 
-# encode = ['sex', 'island']
-# for col in encode:
-#     dummy = pd.get_dummies(df[col], prefix=col)
-#     df = pd.concat([df, dummy], axis=1)
-#     del df[col]
-# df = df[:1] # Select only user input
-
-# st.subheader('User input features')
-
-# if uploaded_file is not None:
-#     st.write(df)
-# else:
-#     st.write("Awaiting CSV file to be uploaded. Currently using example input parameters (shown below).")
-#     st.write(df)
-
-# st.subheader('Prediction')
-# penguins_species = np.array(['Adelie','Chinstrap','Gentoo'])
-# st.write(penguins_species[prediction])
-
-# st.subheader('Prediction Probability')
-# st.write(pd.DataFrame(prediction_proba, columns=['Adelie','Chinstrap','Gentoo']))
+st.write(fig_line)
