@@ -94,3 +94,7 @@ target/
 # exclude json file
 .json
 *.json
+.png
+*.png
+*.csv
+.csv
