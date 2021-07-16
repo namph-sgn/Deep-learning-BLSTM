@@ -21,30 +21,31 @@ def get_new_data():
     return train2
 
 
-def get_past_data_from_bucket_as_dataframe():
+def get_data_from_bucket_as_dataframe(filename="past_data.csv"):
     """Read a blob"""
     bucket_name = "deep_learning_model_bucket"
-    blob_name = "past_data.csv"
 
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    blob = bucket.blob(filename)
     if blob.exists() == False:
-        blob.upload_from_filename('new_data.csv')
+        return None
 
     return_data = blob.download_as_text()
     return_data = StringIO(return_data)
     df = pd.read_csv(return_data, sep=",", header=0, index_col=False)
-    df = df.astype({'time': 'datetime64[ns]', 'AQI_h': 'float'})
-    df.set_index(['site_id', 'time'], inplace=True)
     return df
 
 
 def concat_past_and_new_data():
     idx = pd.IndexSlice
-    past_data = get_past_data_from_bucket_as_dataframe()
+    past_data = get_data_from_bucket_as_dataframe()
+    past_data = past_data.astype({'time': 'datetime64[ns]', 'AQI_h': 'float'})
+    past_data.set_index(['site_id', 'time'], inplace=True)
     new_data = get_new_data()
+    if past_data is None:
+        return new_data
     max_time_past = past_data.index.get_level_values(
         1).max() + pd.Timedelta(hours=1)
     max_time_new = new_data.index.get_level_values(1).max()
@@ -52,32 +53,46 @@ def concat_past_and_new_data():
         [past_data, new_data.loc[idx[:, max_time_past:max_time_new], :]])
     return past_data
 
+def concat_past_and_new_prediction(new_prediction):
+    idx = pd.IndexSlice
+    past_data = get_data_from_bucket_as_dataframe(filename="past_prediction.csv")
+    if past_data is None:
+        return new_prediction
+    print(past_data)
+    past_data = past_data.astype({'time': 'datetime64[ns]', 'AQI_h': 'float'})
+    past_data.set_index(['time'], inplace=True)
+    max_time_past = past_data.index.max()
+    max_time_new = new_prediction.index.max()
+    if max_time_past != max_time_new:
+        max_time_past = max_time_past + pd.Timedelta(hours=1)
+        past_data = pd.concat(
+            [past_data, new_prediction.loc[idx[max_time_past:max_time_new], :]])
+    return past_data
 
-def delete_past_data_from_bucket():
+
+def delete_past_data_from_bucket(delete_file_name="past_data.csv"):
     bucket_name = "deep_learning_model_bucket"
-    blob_name = "past_data.csv"
 
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    blob = bucket.blob(delete_file_name)
     if blob.exists():
         return_data = blob.delete()
     return "Deleted"
 
 
-def create_new_file_in_bucket(filename=None):
+def create_new_file_in_bucket(upload_file=None):
     bucket_name = "deep_learning_model_bucket"
-    blob_name = "past_data.csv"
-    if filename is None:
-        filename = 'test.csv'
+    if upload_file is None:
+        upload_file = 'test.csv'
 
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    blob = bucket.blob(upload_file)
 
-    return_data = blob.upload_from_filename(filename)
+    return_data = blob.upload_from_filename(upload_file)
     print(return_data)
     return "Created"
 

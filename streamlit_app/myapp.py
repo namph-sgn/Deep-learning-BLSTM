@@ -2,14 +2,17 @@ from datetime import time
 import streamlit as st
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-from sklearn.ensemble import RandomForestClassifier
-import altair as alt
+import matplotlib.pyplot as plt
 import os
 
-# Import custom models
-from src.data.create_load_transform_processed_data import load_reshaped_array, create_tensorflow_dataset
-from src.models import load_model
+# Make function to get data from api web
+import requests
+
+_predict_data_url = "https://flask-app-test-317210.de.r.appspot.com/predict_data"
+
+r = requests.get(url=_predict_data_url)
+site_data = r.json()
+predict_data = pd.DataFrame(site_data)
 
 st.write("""
 # Air quality prediction app

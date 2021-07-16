@@ -9,25 +9,7 @@ import extract_features
 import create_load_transform_processed_data
 from io import StringIO
 from google.cloud import storage
-
-base_classes = ['chicken_curry',
-                'chicken_wings',
-                'fried_rice',
-                'grilled_salmon',
-                'hamburger',
-                'ice_cream',
-                'pizza',
-                'ramen',
-                'steak',
-                'sushi']
-
-classes_and_models = {
-    "model_1": {
-        "classes": base_classes,
-        "model_name": "nam_dl_playground_model"  # change to be your model name
-    }
-}
-
+import joblib
 
 # def create_tensorflow_dataset(arr_data, arr_label, batch_size):
 #     if len(arr_data) % batch_size != 0:
@@ -74,16 +56,20 @@ def create_input_for_model(df, timesteps=[1], target_hour=[1], test_output=False
     output_path : string
         Destination directory the dataset will be created
     """
-    if type(timesteps) is int:
-        timesteps = [timesteps]
-    if type(target_hour) is int:
-        target_hour = [target_hour]
+    if output_path == None:
+        output_path == os.path.join(PROJ_ROOT,
+                                    "data",
+                                    "model_input")
     for timesteps in timesteps:
         for target_hour in target_hour:
             # Create train, dev, test data
-            train_df = extract_features.add_features(df).copy()
-            train_df = extract_features.create_and_save_scale_data(
-                train_df, output_path=output_path).copy()
+            # train_df = extract_features.create_and_save_scale_data(df, output_path=output_path).copy()
+            # data scaled must be from the google cloud platform
+            scaler = extract_features.load_scaler()
+            train_df = df.copy()
+            for col in ['AQI_h']:
+                train_df[[col]] = scaler.transform(train_df[[col]])
+            train_df = extract_features.add_features(train_df)
             if test_output is not False:
                 train_df, test_df = extract_features.generate_train_test_set_by_time(
                     train_df)
@@ -106,7 +92,8 @@ def create_input_for_model(df, timesteps=[1], target_hour=[1], test_output=False
             if output_path is not None:
                 create_load_transform_processed_data.reshape_array_and_save_to_path(
                     train, y_train, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="train")
-
+    train = train.astype('float32')
+    y_train = y_train.astype('float32')
     print("Input have been created")
     return train, y_train
 
@@ -156,4 +143,7 @@ def predict_json(project, region, model, instances, version=None):
     if "error" in response:
         raise RuntimeError(response["error"])
 
-    return response["predictions"]
+    scaler = extract_features.load_scaler()
+    reverse_scaled_prediction = scaler.inverse_transform(response['predictions'])
+
+    return reverse_scaled_prediction

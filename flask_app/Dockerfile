@@ -15,4 +15,4 @@ COPY . /app
 WORKDIR app
 
 # Run
-ENTRYPOINT ["gunicorn", "--config", "./gunicorn.conf.py", "wsgi:app"]
+ENTRYPOINT ["gunicorn", "--config", "./gunicorn.conf.py", "app:app"]

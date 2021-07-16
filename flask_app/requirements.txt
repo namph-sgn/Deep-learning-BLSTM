@@ -11,3 +11,4 @@ holidays
 tensorflow
 sklearn
 joblib
+gcsfs

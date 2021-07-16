@@ -7,3 +7,11 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.9
   target_concurrent_requests: 100
+resources:
+  cpu: 2
+  memory_gb: 2.3
+  disk_size_gb: 10
+  volumes:
+  - name: ramdisk1
+    volume_type: tmpfs
+    size_gb: 0.5
