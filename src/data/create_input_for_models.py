@@ -3,7 +3,7 @@ from src.features import extract_features
 from src.data import create_load_transform_processed_data
 
 
-def create(df, timesteps=[1], target_hour=[1], test_output=False, dev_output=False, output_path=None, PROJ_ROOT=os.pardir):
+def create(df, timesteps=[1], target_hour=[1], test_output=False, dev_output=False, scale_data=True, output_path=None, PROJ_ROOT=os.pardir):
     """From interim dataframe:
         + add features
         + split into chunks according to timesteps
@@ -24,33 +24,37 @@ def create(df, timesteps=[1], target_hour=[1], test_output=False, dev_output=Fal
         output_path == os.path.join(PROJ_ROOT,
                                     "data",
                                     "model_input")
-    for timesteps in timesteps:
-        for target_hour in target_hour:
+    for timestep in timesteps:
+        print(target_hour)
+        for hour in target_hour:
             # Create train, dev, test data
-            train_df = extract_features.create_and_save_scale_data(df, output_path=output_path).copy()
+            if scale_data is True:
+                train_df = extract_features.create_and_save_scale_data(df, output_path=output_path).copy()
+            else:
+                train_df = df.copy()
             train_df = extract_features.add_features(train_df).copy()
             if test_output is not False:
                 train_df, test_df = extract_features.generate_train_test_set_by_time(
                     train_df)
                 test, y_test, multiclass_y_test = extract_features.data_preprocessing(
-                    test_df, target_hour, timesteps=timesteps)
+                    test_df, hour, timesteps=timestep)
                 create_load_transform_processed_data.reshape_array_and_save_to_path(
-                    test, y_test, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="test")
+                    test, y_test, path=output_path, timesteps=timestep, target_hour=hour, data_type="test")
             if dev_output is not False:
                 train_df, dev_df = extract_features.generate_train_test_set_by_time(
                     train_df)
                 dev, y_dev, multiclass_y_dev = extract_features.data_preprocessing(
-                    dev_df, target_hour, timesteps=timesteps)
+                    dev_df, hour, timesteps=timestep)
                 create_load_transform_processed_data.reshape_array_and_save_to_path(
-                    dev, y_dev, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="dev")
+                    dev, y_dev, path=output_path, timesteps=timestep, target_hour=hour, data_type="dev")
 
             train, y_train, multiclass_y = extract_features.data_preprocessing(
-                train_df, target_hour, timesteps=timesteps)
+                train_df, hour, timesteps=timestep)
 
             # Save data to file
             if output_path is not None:
                 create_load_transform_processed_data.reshape_array_and_save_to_path(
-                    train, y_train, path=output_path, timesteps=timesteps, target_hour=target_hour, data_type="train")
+                    train, y_train, path=output_path, timesteps=timestep, target_hour=hour, data_type="train")
     train = train.astype('float32')
     y_train = y_train.astype('float32')
     print("Input have been created")

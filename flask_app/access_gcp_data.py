@@ -6,6 +6,17 @@ from io import StringIO
 
 
 def get_new_data():
+    def categorize_AQI(AQI_data):
+        """
+        Input: Series of AQI_values
+        Output: Series of AQI category
+        7 categories [Good, Moderate, Unhealthy for Sensitive, Unhealthy, Very Unhealthy, Hazardous, Out of AQI]
+        range of categories [0-50, 51-100, 101-150, 151-200, 201-300, 301-500, >500]
+        """
+        bins = [-1, 50, 100, 150, 200, 300, 500, np.inf]
+        labels = ["Good", "Moderate", "Unhealthy for Sensitive",
+                "Unhealthy", "Very Unhealthy", "Hazardous", "Beyond AQI"]
+        return pd.cut(AQI_data, bins=bins, labels=labels)
     feed = "http://dosairnowdata.org/dos/RSS/HoChiMinhCity/HoChiMinhCity-PM2.5.xml"
     NewsFeed = feedparser.parse(feed)
     train = pd.DataFrame.from_dict(NewsFeed, orient='index')
@@ -40,7 +51,7 @@ def get_data_from_bucket_as_dataframe(filename="past_data.csv"):
 
 def concat_past_and_new_data():
     idx = pd.IndexSlice
-    past_data = get_data_from_bucket_as_dataframe()
+    past_data = get_data_from_bucket_as_dataframe(filename="past_data.csv")
     past_data = past_data.astype({'time': 'datetime64[ns]', 'AQI_h': 'float'})
     past_data.set_index(['site_id', 'time'], inplace=True)
     new_data = get_new_data()
@@ -97,14 +108,4 @@ def create_new_file_in_bucket(upload_file=None):
     return "Created"
 
 
-def categorize_AQI(AQI_data):
-    """
-    Input: Series of AQI_values
-    Output: Series of AQI category
-    7 categories [Good, Moderate, Unhealthy for Sensitive, Unhealthy, Very Unhealthy, Hazardous, Out of AQI]
-    range of categories [0-50, 51-100, 101-150, 151-200, 201-300, 301-500, >500]
-    """
-    bins = [-1, 50, 100, 150, 200, 300, 500, np.inf]
-    labels = ["Good", "Moderate", "Unhealthy for Sensitive",
-              "Unhealthy", "Very Unhealthy", "Hazardous", "Beyond AQI"]
-    return pd.cut(AQI_data, bins=bins, labels=labels)
+

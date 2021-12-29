@@ -193,7 +193,7 @@ def extract_time_features(df):
         series_mean = series_rolled.mean().shift(1).reset_index()
         series_std = series_rolled.std().shift(1).reset_index()
         df_time_features[f"{feature}_mean_lag{window}"] = series_mean['AQI_h'].values
-#         df_time_features[f"{feature}_std_lag{window}"] = series_std['AQI_h'].values
+        # df_time_features[f"{feature}_std_lag{window}"] = series_std['AQI_h'].values
         df_time_features.fillna(df_time_features.mean(), inplace=True)
         df_time_features.fillna(df['AQI_h'].mean(), inplace=True)
 

@@ -87,7 +87,7 @@ def calculate_AQI_h(data=None):
         time = calculating_hour_value.name
         # Loc 12h gan nhat
         tmp_12h_data_storage = polutant_data.loc[
-            idx[time - pd.Timedelta(hours=12): time]]
+            idx[time - pd.Timedelta(hours=11): time]]
         # Dao nguoc index lai
         tmp_12h_data_storage = tmp_12h_data_storage.iloc[::-1]
         # Kiem tra xem trong 3 gio gan nhat thi it nhat 2 gio phai co so lieu
@@ -121,7 +121,6 @@ def calculate_AQI_h(data=None):
     _global_BP = create_BP_df()
     sorted_data = data.sort_index(level=['site_id', 'time'], ascending=[1, 1])
     site_ids = list(data.index.get_level_values(0).unique())
-#     set_trace()
     for site_id in site_ids:
         try:
             tmp = sorted_data.loc[site_id, ['PM25']].apply(
@@ -131,7 +130,6 @@ def calculate_AQI_h(data=None):
         except Exception as e:
             print("Error in site {}".format(site_id))
             print(e)
-#         set_trace()
         sorted_data.loc[site_id, ['NowCast']] = tmp.values
     # Air index number of all polutant data
     I_number = sorted_data.drop('NowCast', axis=1).apply(
@@ -146,6 +144,7 @@ def calculate_AQI_h(data=None):
     # Ignore missing columns
     column_order = [
         'CO', 'NO2', 'PM25', 'AQI_h', 'AQI_h_Polutant', 'AQI_h_I', 'AQI_h_label']
-    column_intersection = [x for x in column_order if x in frozenset(calculated_AQI.columns)]
+    column_intersection = [
+        x for x in column_order if x in frozenset(calculated_AQI.columns)]
     calculated_AQI = calculated_AQI[column_intersection]
     return calculated_AQI

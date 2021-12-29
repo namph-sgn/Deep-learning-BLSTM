@@ -58,9 +58,12 @@ def data_preprocessing(df, hour=1, timesteps=12, debug=False):
             seq['Continous length'] = 0
             print(seq.columns)
             continous_length_index = seq.columns.get_loc('Continous length')
-        while pos < (length - size):
+        while pos < length:
             try:
                 if seq.iloc[pos + size + target_hour].name - seq.iloc[pos].name == timerange:
+                    print("Target time: {}".format(seq.iloc[pos + size + target_hour].name))
+                    print("Begin time: {}".format(seq.iloc[pos].name))
+                    print("Time range: {}".format(timerange))
                     while seq.iloc[pos + size + target_hour].name - seq.iloc[pos].name == timerange:
                         chunk_tmp = seq.iloc[pos:pos +
                                              size].loc[:, feature_cols]
@@ -82,7 +85,7 @@ def data_preprocessing(df, hour=1, timesteps=12, debug=False):
             except IndexError:
                 print("Current position is: {}".format(pos))
                 print("Current tmp position is: {}".format(tmp_pos))
-                pos = length - size
+                pos = length
         return None
 # ===========================================================================================================================
     hour = hour - 1
@@ -221,14 +224,12 @@ def load_scaler():
     return scaler
 
 
-def add_features(df, region='hcm', production=False):
+def add_features(df, region='hcm'):
 
     # Change all data to numpy, then concatenate those numpy.
     # Then construct the dataframe to old frame. This can work
     data_df = df[['AQI_h', 'AQI_h_I', 'Continous length']].copy()
 
-    if production==True:
-        data_df = load_scaler_and_scale_data(data_df)
     columns = ['site_id', 'time',
                'AQI_h', 'AQI_h_I', 'Continous length']
     df_numpy = data_df.reset_index().to_numpy()

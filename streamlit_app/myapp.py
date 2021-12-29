@@ -64,5 +64,6 @@ ax_line.plot(past_data['time'].values, past_data['AQI_h'].values, label='Actual'
 ax_line.plot(past_data['time'].values, past_data['AQI_h_predict'].values, label='Prediction')
 
 ax_line.set_title("Past 30 hours prediction vs actual", fontsize=18)
+fig_line.legend()
 
 st.write(fig_line)

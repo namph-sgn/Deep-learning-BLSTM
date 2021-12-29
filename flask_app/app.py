@@ -1,4 +1,5 @@
 from pprint import pprint as pp
+from pandas.core.indexes.datetimes import date_range
 import requests
 from flask import Flask, flash, redirect, url_for, Response, request
 import os
@@ -33,13 +34,15 @@ def predict_five():
     Run prediction with new data, run every one hour
     """
     data_df = get_data_from_bucket_as_dataframe()
-    data_df = data_df.tail(25)
+    data_df = data_df.tail(50)
     data_df = data_df.astype({'time': 'datetime64[ns]', 'AQI_h': 'float'})
     data_df.set_index(['site_id', 'time'], inplace=True)
     all_result = np.array([])
+    all_hour = np.array([])
     predict_data, label = create_input_for_model(
-        data_df, timesteps=[5], target_hour=[1])
+        data_df, timesteps=[5], target_hour=[0])
     tmp_predict_data = predict_data[-1].copy()
+    print(tmp_predict_data.shape)
     tmp_predict_data = np.reshape(
         tmp_predict_data, (1, predict_data.shape[1], predict_data.shape[2]))
     for target_hour in range(0, 5):
@@ -48,16 +51,17 @@ def predict_five():
                              model=MODEL[target_hour],
                              instances=tmp_predict_data)
         all_result = np.append(all_result, preds)
-
+        all_hour = np.append(all_hour, MODEL[target_hour])
     daterange = pd.date_range(
-        start=data_df.iloc[-1].name[1], end=data_df.iloc[-1].name[1] + pd.Timedelta(hours=4), freq='H', name="time")
+        start=data_df.iloc[-1].name[1] + pd.Timedelta(hours=1), end=data_df.iloc[-1].name[1] + pd.Timedelta(hours=5), freq='H', name="time")
+    print(daterange)
     all_result_df = pd.DataFrame(
-        all_result, index=daterange, columns=['AQI_h'])
+        [all_hour, all_result], index=daterange, columns=['hour_model', 'AQI_h'])
     all_result_df.to_csv('current_prediction.csv')
     delete_past_data_from_bucket(delete_file_name="current_prediction.csv")
     create_new_file_in_bucket(upload_file='current_prediction.csv')
 
-    prediction_file = concat_past_and_new_prediction(all_result_df.tail(1))
+    prediction_file = concat_past_and_new_prediction(all_result_df.head(1))
     prediction_file.to_csv('past_prediction.csv')
     delete_past_data_from_bucket(delete_file_name="past_prediction.csv")
     create_new_file_in_bucket(upload_file='past_prediction.csv')
